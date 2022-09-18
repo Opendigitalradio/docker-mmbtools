@@ -1,9 +1,12 @@
 name: docker-publish
 
 on:
-  workflow_dispatch:
   release:
     types: [published]
+  schedule:
+    - cron: '0 4 * * 3'
+  workflow_dispatch:
+
 
 jobs:
   build:
