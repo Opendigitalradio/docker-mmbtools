@@ -38,8 +38,11 @@ If you have a USB transceiver and if you intend to broadcast, then you should:
 - Add the argument `--device /dev/bus/usb/xxx/yyy` to the above `docker run` command where **xxx** is the bus number and **yyy** if the device number
 
 ### Access the components
-- Point your web browser to `localhost:8001`
-- Sign in as user `odr` with password `odr`
+| Component | Action | URL | Authentication |
+| - | - | - | - |
+| Supervisor | n/a | localhost:8001 | user `odr` , password `odr` |
+| Encoder Manager | Start 10-EncoderManager | localhost:8003 | user `odr` , password `odr` |
+| Multiplex Manager | Start 20-Mulitplex + 21-Multiplex-Manager | localhost:8002 | n/a |
 
 ### First test: run the multiplex off-air
 - Install `dablin` on your host
