@@ -1,5 +1,6 @@
 # BUILDER IMAGE
 FROM	jgoerzen/debian-base-minimal:bullseye AS builder
+ARG 	build_branch=master
 ENV		DEBIAN_FRONTEND=noninteractive
 
 ## Update OS
@@ -13,7 +14,7 @@ RUN	apt-get install --yes git ;\
 			https://github.com/opendigitalradio/dab-scripts.git \
 			/root/dab-scripts ;\
 		bash /root/dab-scripts/install/mmbtools-get \
-			--branch next \
+			--branch ${build_branch} \
 			--odr-user odr \
 			install
 
@@ -64,7 +65,7 @@ COPY --from=builder /usr/local/bin/* /usr/local/bin/
 COPY --from=builder --chown=odr:odr /home/odr /home/odr
 COPY --from=builder /etc/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 
-## Link the sample supervisor configuration files 
+## Link the sample supervisor configuration files
 RUN	ln -s /home/odr/config/supervisor/*.conf /etc/supervisor/conf.d/
 
 ## Expose ports

@@ -25,9 +25,19 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       -
-        name: Build and push
+        name: Build and push master
         uses: docker/build-push-action@v2
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:latest
+          buildArgs: build_branch=master
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:master,
+                ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:latest
+      -
+        name: Build and push next
+        uses: docker/build-push-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          buildArgs: build_branch=next
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:next
