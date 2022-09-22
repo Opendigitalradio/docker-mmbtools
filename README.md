@@ -4,7 +4,7 @@ The **Opendigitalradio/mmbtools** docker image aims at providing a sandboxed env
 
 ## Content of the image
 | Component | Description |
-| - | - |
+| --------- | ----------- |
 | [jgoerzen/debian-base-minimal](https://hub.docker.com/r/jgoerzen/debian-base-minimal) | base debian image with systemd |
 | [odr-audioenc](https://github.com/opendigitalradio/odr-audioenc) | audio encoder |
 | [odr-padenc](https://github.com/opendigitalradio/odr-padenc) | program-associated-data encoder |
@@ -39,26 +39,30 @@ If you have a USB transceiver and if you intend to broadcast, then you should:
 
 ### Access the components
 | Component | Action | URL | Authentication |
-| - | - | - | - |
-| Supervisor | n/a | localhost:8001 | user `odr` , password `odr` |
-| Encoder Manager | Start 10-EncoderManager | localhost:8003 | user `odr` , password `odr` |
-| Multiplex Manager | Start 20-Mulitplex + 21-Multiplex-Manager | localhost:8002 | n/a |
+| --------- | ------ | --- | -------------- |
+| Supervisor | n/a | localhost:8001 | user: `odr` <br /> password: `odr` |
+| Encoder Manager | Start 10-EncoderManager | localhost:8003 | user: `odr` <br /> password: `odr` |
+| Multiplex Manager | Start 20-Mulitplex <br /> Start 21-Multiplex-Manager | localhost:8002 | n/a |
 
-### First test: run the multiplex off-air
-- Install `dablin` on your host
-- Start the 2 audio encoders and the 2 PAD encoders
-- Start the multiplexer
-- Run the following command to view the multiplex information and hear one of the 2 radio streams (by default the first one):
-```
-# If your host doesn't have a graphical interface
-nc localhost 9201 | dablin -f edi -I -1
+### Test-1: check the encoders
+- Access the supervisor (http://localhost:8001)
+- Start `10-EncoderManager`
+- Log into the Encoder Manager (http://localhost:8003)
+- Open the `status` tab
+- Check the audio levels and the DLS text
 
-# If your host has a graphical interface
-nc localhost 9201 | dablin_gtk -f edi -I -1
-```
+### Test-2: check the multiplex
+- Install `dablin` on a GUI host
+- Access the supervisor (http://localhost:8001)
+- Start the audio and PAD encoders
+- Start `20-Multiplex`
+- Run the following command to view the multiplex information and hear the radio streams (by default the first one):
+  ```
+  nc localhost 9201 | dablin_gtk -f edi -I -1
+  ```
 
-### Second test: run the multiplex on-air
-If you need to broadcast on a channel other than **5A**, or if you have a USB transceiver card othen than the HackRF, then
+### Test-3: check the modulator
+If you have a USB transceiver card and wish to broadcast on a channel other than **5A**, or if you have a USB transceiver card othen than the HackRF, then
 - Get a command line inside the running container:
 	```
 	docker exec \
@@ -68,6 +72,9 @@ If you need to broadcast on a channel other than **5A**, or if you have a USB tr
 		bash
 	```
 - Follow these [instructions](https://github.com/opendigitalradio/dab-scripts#configuration)
-
+- Access the supervisor (http://localhost:8001)
+- Start the audio and PAD encoders
+- Start `20-Multiplex`
+- Start `30-Modulator`
 ## Sources
 [github](https://github.com/colisee/docker-mmbtools)
