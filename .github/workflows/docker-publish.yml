@@ -30,7 +30,7 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          buildArgs: build_branch=master
+          build-args: build_branch=master
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:master,
                 ${{ secrets.DOCKER_HUB_USERNAME }}/mmbtools:latest
       -
