@@ -1,79 +1,54 @@
-# BUILDER IMAGE
-FROM	jgoerzen/debian-base-minimal:bullseye AS builder
-ARG 	build_branch=master
-ENV		DEBIAN_FRONTEND=noninteractive
+FROM debian:bookworm-backports
 
-## Update OS
-RUN	apt-get update ; \
-		apt-get upgrade --yes
-
-## Install mmbtools
-RUN	apt-get install --yes git ;\
-		git clone \
-			--branch next \
-			https://github.com/opendigitalradio/dab-scripts.git \
-			/root/dab-scripts ;\
-		bash /root/dab-scripts/install/mmbtools-get \
-			--branch ${build_branch} \
-			--odr-user odr \
-			install
-
-
-# FINAL IMAGE
-FROM	jgoerzen/debian-base-minimal:bullseye
-ENV		DEBIAN_FRONTEND=noninteractive
-
-## Update OS
-RUN	apt-get update ;\
-    apt-get upgrade --yes
-
-## Install production libraries
-RUN	apt-get install --yes \
-			gstreamer1.0-plugins-good \
-			libasound2 \
-			libmagickwand-6.q16-dev \
-			libcurl4 \
-			libgstreamer1.0 \
-			libgstreamer-plugins-base1.0 \
-			libjack0 \
-			libvlc5 vlc-plugin-base \
-			libzmq5 \
-			tzdata \
-			libboost-system1.74.0 \
-			libbladerf2 \
-			libfftw3-3 \
-			liblimesuite20.10-1 \
-			libsoapysdr0.7 \
-			libuhd3.15.0 \
-			python3-cherrypy3 \
-			python3-jinja2 \
-			python3-pysnmp4 \
-			python3-serial \
-			python3-zmq \
-			python3-yaml \
-			supervisor ;\
-		rm -rf /var/lib/apt/lists/*
-
-## Add user odr
-RUN	useradd \
-			--create-home \
-			--groups dialout,audio \
-			odr
-
-## Copy objects built in the builder phase
-COPY --from=builder /usr/local/bin/* /usr/local/bin/
-COPY --from=builder --chown=odr:odr /home/odr /home/odr
-COPY --from=builder /etc/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-
-## Link the sample supervisor configuration files
-RUN	ln -s /home/odr/config/supervisor/*.conf /etc/supervisor/conf.d/
+# Set image labels
+LABEL org.opencontainers.image.vendor="Open Digital Radio"
+LABEL org.opencontainers.image.authors="colisee@hotmail.com"
 
 ## Expose ports
-EXPOSE 8001-8003
-EXPOSE 9001-9016
+EXPOSE 8001
 EXPOSE 9201
 
-## Set image labels
-LABEL org.opencontainers.image.vendor="Open Digital Radio"
-LABEL org.opencontainers.image.description="mmbtools - Multi Media Broadcasting Tools"
-LABEL org.opencontainers.image.authors="robin.alexander@netplus.ch"
+## Set the entrypoint
+ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon"]
+
+# Create user odr
+RUN useradd \
+      --create-home \
+      --groups dialout,audio \
+      odr ;\
+      mkdir -p /home/odr/log ;\
+      chown odr:odr /home/odr/log
+
+# Copy files
+COPY --chown=odr:odr --chmod=744 config /home/odr/config/
+COPY --chown=odr:odr --chmod=744 mot /home/odr/mot/
+
+# Add non-free repository, upgrade system and install required packages
+ARG DEBIAN_FRONTEND=noninteractive
+RUN sed \
+      -i /etc/apt/sources.list.d/backports.list \
+      -e 's/ main/ main non-free/' ;\
+    apt-get update ;\
+    apt-get upgrade --yes ;\
+    apt-get \
+      install --yes \
+      odr-audioenc \
+      odr-padenc \
+      odr-dabmux \
+      odr-dabmod \
+      supervisor ;\
+    apt-get clean
+
+# Customize supervisor
+RUN if [ ! $(grep inet_http_server /etc/supervisor/supervisord.conf) ]; then \
+      echo ''                   >> /etc/supervisor/supervisord.conf ;\
+      echo '[inet_http_server]' >> /etc/supervisor/supervisord.conf ;\
+      echo 'port = 8001'        >> /etc/supervisor/supervisord.conf ;\
+      echo 'username = odr'     >> /etc/supervisor/supervisord.conf ;\
+      echo 'password = odr'     >> /etc/supervisor/supervisord.conf ;\
+    fi; \
+    if [ ! $(grep /home/odr /etc/supervisor/supervisord.conf) ]; then \
+      sed \
+        -i /etc/supervisor/supervisord.conf \
+        -e "s:\(^files =.*$\):\1 /home/odr/config/supervisor/*.conf:" ;\
+    fi
