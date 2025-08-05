@@ -13,6 +13,7 @@ environment for the Multi Media Broadcasting tools from
 | [odr-padenc](https://github.com/opendigitalradio/odr-padenc) | program-associated-data encoder |
 | [odr-dabmux](https://github.com/opendigitalradio/odr-dabmux) | dab multiplexer |
 | [odr-dabmod](https://github.com/opendigitalradio/odr-dabmod) | dab modulator |
+| [supervisor](https://supervisord.org/) | process control system |
 | config | sample configuration files |
 
 ## Getting the container image
@@ -38,6 +39,26 @@ docker buildx build \
   .
 ```
 
+## Pre-requisites
+
+If the host running the docker image is attached to a usb modulator (ex:
+Hackrf One), then plug your USB transceiver to the host.
+
+### Linux OS
+
+1. Run the command `lsusb` on the host and note the bus (bbb) and device
+(ddd) numbers of your USB modulator device
+1. Run the command `ls -l /dev/bus/usb/bbb/ddd` and confirm that the group
+owner is **plugdev**
+1. If **plugdev** is not the group owner then you need to install the package
+related to your USB device (it should contain a file with the appropriate udev
+rules). If you cannot find such a package, then install the `Soapysdr` package
+
+### WSL (Windows Subsystem for Linux)
+
+- Follow this [Microsoft guide](https://learn.microsoft.com/en-us/windows/wsl/connect-usb)
+- Enter the WSL session and follow the above Linux OS steps
+
 ## Usage
 
 ### Run the mmbtools container
@@ -53,11 +74,9 @@ docker run \
 opendigitalradio/mmbtools
 ```
 
-If you have a USB transceiver and if you intend to broadcast, then you should:
-
-- Plug your USB transceiver to the host
-- Run the command `lsusb` on the host and identify the bus number and device number of your transceiver
-- Add the argument `--device /dev/bus/usb/xxx/yyy` to the above `docker run` command where **xxx** is the bus number and **yyy** if the device number
+Add the argument `--device /dev/bus/usb/bbb/ddd` to the above
+`docker run` command where **bbb** and **ddd** are the bus and
+device number
 
 ### Access the dashboard
 
@@ -87,15 +106,17 @@ services)
 
 ### General recommendation
 
-If you need to change the configuration files, we recommend that you use a container volume:
+If you need to change the configuration files, we recommend
+that you use mount host path:
 
 1. Copy the container configuration files on your host
 
    ```bash
-   docker cp mmbtools:/home/odr/config ./config
+   mkdir mmbtools
+   docker cp mmbtools:/home/odr/config mmbtools
    ```
 
-1. Customize the configuration files on your host
+1. Customize the configuration files on your host (see below)
 
 1. Run the docker container with your host configuration files
 
@@ -107,60 +128,73 @@ If you need to change the configuration files, we recommend that you use a conta
      --publish 8001:8001 \
      --publish 9201:9201 \
      --volume /etc/localtime:/etc/localtime:ro \
-     --volume ./config:/home/odr/config \
+     --volume ./mmbtools:/home/odr/config \
      opendigitalradio/mmbtools
    ```
 
 ### Job dashboard
 
-If you want to change the default user name and/or user password authorized to access the job dashboard, then apply the following commands:
+If you want to change the default user name and/or user password
+authorized to access the job dashboard, then apply the
+following commands:
 
 ```bash
 # Change the user name
-sudo sed -e 's/^username = odr/^username = new_user/' -i /etc/supervisor/supervisord.conf
+sed \
+  -e 's/^username = odr/^username = new_user/'
+  -i mmbtools/supervisord.conf
 
 # Change the user password
-sudo sed -e 's/^password = odr/^password = new_password/' -i /etc/supervisor/supervisord.conf
+sed \
+  -e 's/^password = odr/^password = new_password/' \
+  -i mmbtools/supervisord.conf
 ```
 
 Please note that *new_user* is not related to any linux profiles
 
 ### Transmission channel
 
-If channel 5A is being used in your area, you can switch to a [new transmission channel](http://www.wohnort.org/config/freqs.html) by applying the following command:
+If channel 5A is being used in your area, you can switch to a
+[new transmission channel](http://www.wohnort.org/config/freqs.html)
+by applying the following command:
 
 ```bash
 sed \
   -e 's/^channel=5A/^channel=new_channel/' \
-  -i /home/odr/config/odr-dabmod.ini
+  -i mmbtools/odr-dabmod.ini
 ```
 
 ### USB transceiver
 
-The modulator sample configuration file is setup for a [HackRF One](https://greatscottgadgets.com/hackrf/one/) using the [SoapySDR](https://github.com/pothosware/SoapySDR/wiki) interface.
+The modulator sample configuration file is setup for a
+[HackRF One](https://greatscottgadgets.com/hackrf/one/) using the
+[SoapySDR](https://github.com/pothosware/SoapySDR/wiki) interface.
 
-If you have a different USB transceiver, then apply one of the following commands:
+If you have a different USB transceiver, then apply one of the following
+commands:
 
 ```bash
 # LimeSDR
 sed \
   -e 's/^device=driver=hackrf/^device=driver=lime/' \
-  -i /home/odr/config/odr-dabmod.ini
+  -i mmbtools/odr-dabmod.ini
 
 # PlutoSDR
 sed \
   -e 's/^device=driver=hackrf/^device=driver=plutosdr/' \
-  -i /home/odr/config/odr-dabmod.ini
+  -i mmbtools/odr-dabmod.ini
 
 # Blade RF
 sed \
   -e 's/^device=driver=hackrf/^device=driver=bladerf/' \
-  -i /home/odr/config/odr-dabmod.ini
+  -i mmbtools/odr-dabmod.ini
 ```
 
 ### RF spectrum
 
-If the host running the mmbtools container is not powerful enough, then you should set the following 2 parameters in the `/home/odr/config/odr-dabmod.ini` file to less stringent value:
+If the host running the mmbtools container is not powerful enough,
+then you should set the following 2 parameters in the
+`mmbtools/odr-dabmod.ini` file to less stringent value:
 
 - modulator rate=2048000
 - firfilter enabled=0
